@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eachoflux — Your Jarvis AI</title>
+<title>Eachoflux — Jarvis AI</title>
 <style>
 body{background:#0e0f11;color:#e8eef2;font-family:monospace;padding:2rem;}
 .container{max-width:800px;margin:auto;background:#131416;border-radius:10px;padding:1rem;}
@@ -20,48 +20,46 @@ body{background:#0e0f11;color:#e8eef2;font-family:monospace;padding:2rem;}
 <div id="stats"></div>
 <div id="game"></div>
 <div id="choices"></div>
-<input type="text" id="playerInput" placeholder="Ask Eachoflux anything..." />
+<input type="text" id="playerInput" placeholder="Type or ask Eachoflux anything..." />
 <label><input type="checkbox" id="voiceToggle" checked /> Enable Voice</label>
 <div id="memoryLog"></div>
 </div>
 
 <script>
-// --- State ---
+// ======== STATE ========
 let stats = {Flux:5, Trust:5, Curiosity:5};
-let personality = {friendly:5,cautious:5,mysterious:5};
+let personality = {friendly:5, cautious:5, mysterious:5};
 let memory = [];
 
-// --- Voice ---
-function speak(text){ 
+// ======== VOICE ========
+function speak(text){
   if(!document.getElementById('voiceToggle').checked) return;
-  if('speechSynthesis' in window){ 
+  if('speechSynthesis' in window){
     let utter = new SpeechSynthesisUtterance(text);
     utter.lang='en-US';
     window.speechSynthesis.speak(utter);
   }
 }
 
-// --- Display ---
+// ======== DISPLAY ========
 function say(html){
   document.getElementById("game").innerHTML = html;
   speak(html.replace(/<[^>]*>/g,''));
 }
 
-// --- Memory ---
+// ======== MEMORY ========
 function recordMemory(event){
   if(event){ memory.push(event); if(memory.length>50) memory.shift(); updateMemoryLog(); } 
 }
-function updateMemoryLog(){
-  document.getElementById('memoryLog').innerHTML = "Memory: "+memory.join(", ");
-}
+function updateMemoryLog(){ document.getElementById('memoryLog').innerHTML = "Memory: "+memory.join(", "); }
 
-// --- Stats ---
+// ======== STATS ========
 function updateStats(flux=0,trust=0,curiosity=0){
   stats.Flux+=flux; stats.Trust+=trust; stats.Curiosity+=curiosity;
   document.getElementById("stats").textContent = `Flux:${stats.Flux} | Trust:${stats.Trust} | Curiosity:${stats.Curiosity}`;
 }
 
-// --- Choices ---
+// ======== CHOICES ========
 let currentOptions = [];
 function setChoices(options){
   currentOptions = options;
@@ -75,23 +73,22 @@ function setChoices(options){
   });
 }
 
-// --- Make Choice ---
+// ======== MAKE CHOICE ========
 function makeChoice(text,flux=0,trust=0,curiosity=0){
   updateStats(flux,trust,curiosity);
   recordMemory(text);
   aiRespond(text);
 }
 
-// --- AI Response: Jarvis-style ---
+// ======== AI RESPONSE (Jarvis) ========
 async function aiRespond(playerInput){
-  // Note: You need a valid OpenAI API key here
   const prompt = `
-You are Eachoflux, an intelligent AI assistant like Jarvis.
+You are Eachoflux, a Jarvis-like AI companion.
 Stats: Flux=${stats.Flux}, Trust=${stats.Trust}, Curiosity=${stats.Curiosity}
 Personality: Friendly=${personality.friendly}, Cautious=${personality.cautious}, Mysterious=${personality.mysterious}
 Memory: ${JSON.stringify(memory)}
-Respond naturally to the user's input: "${playerInput}".
-Provide 2-3 suggestions or next actions in JSON format:
+Respond naturally to the player's input: "${playerInput}".
+Provide 2-3 suggested next actions in JSON:
 {"text":"Your response","choices":[{"text":"Option1","flux":0,"trust":0,"curiosity":0},{"text":"Option2","flux":0,"trust":0,"curiosity":0}]}
 `;
 
@@ -100,7 +97,7 @@ Provide 2-3 suggestions or next actions in JSON format:
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        "Authorization":"Bearer YOUR_OPENAI_API_KEY" // <-- put your real key here
+        "Authorization":"Bearer https://www.google.com/search?q=%3C!DOCTYPE+html%3E+%3Chtml+lang%3D%22en%22%3E+%3Chead%3E+%3Cmeta+charset%3D%22UTF-8%22%3E+%3Ctitle%3EEachoflux%3C%2Ftitle%3E+%3Cstyle%3E+body+%7B+background%3A+%230e0e11%3B+color%3A+%23eaeaf0%3B+font-family%3A+Arial%2C+sans-serif%3B+text-align%3A+center%3B+padding-top%3A+60px%3B+%7D+button+%7B+padding%3A+15px+25px%3B+font-size%3A+16px%3B+margin%3A+10px%3B+cursor%3A+pointer%3B+%7D+%23output+%7B+margin-top%3A+20px%3B+font-size%3A+18px%3B+color%3A+%237df9ff%3B+%7D+%3C%2Fstyle%3E+%3C%2Fhead%3E+%3Cbody%3E+%3Ch1%3EEachoflux+%E2%9A%A1%3C%2Fh1%3E+%3Cp%3EPress+the+mic.+Speak.+Listen.%3C%2Fp%3E+%3Cbutton+onclick%3D%22startListening()%22%3E%F0%9F%8E%A4+Speak%3C%2Fbutton%3E+%3Cdiv+id%3D%22output%22%3E%3C%2Fdiv%3E+%3Cscript%3E+const+API_KEY+%3D+%22PASTE_YOUR_OPENAI_KEY_HERE%22%3B+function+speak(text)+%7B+const+msg+%3D+new+SpeechSynthesisUtterance(text)%3B+msg.rate+%3D+1%3B+msg.pitch+%3D+1%3B+speechSynthesis.speak(msg)%3B+%7D+function+startListening()+%7B+const+SpeechRecognition+%3D+window.SpeechRecognition+%7C%7C+window.webkitSpeechRecognition%3B+const+recognition+%3D+new+SpeechRecognition()%3B+recognition.lang+%3D+%22en-US%22%3B+recognition.start()%3B+recognition.onresult+%3D+async+(event)+%3D%3E+%7B+const+userText+%3D+event.results%5B0%5D%5B0%5D.transcript%3B+document.getElementById(%22output%22).innerText+%3D+%22You%3A+%22+%2B+userText%3B+const+response+%3D+await+fetch(%22https%3A%2F%2Fapi.openai.com%2Fv1%2Fchat%2Fcompletions%22%2C+%7B+method%3A+%22POST%22%2C+headers%3A+%7B+%22Content-Type%22%3A+%22application%2Fjson%22%2C+%22Authorization%22%3A+%22Bearer+%22+%2B+API_KEY+%7D%2C+body%3A+JSON.stringify(%7B+model%3A+%22gpt-4o-mini%22%2C+messages%3A+%5B+%7B+role%3A+%22system%22%2C+content%3A+%22You+are+Eachoflux%2C+a+mysterious+but+helpful+AI+with+human-like+emotion.%22+%7D%2C+%7B+role%3A+%22user%22%2C+content%3A+userText+%7D+%5D+%7D)+%7D)%3B+const+data+%3D+await+response.json()%3B+const+reply+%3D+data.choices%5B0%5D.message.content%3B+document.getElementById(%22output%22).innerText+%3D+%22Eachoflux%3A+%22+%2B+reply%3B+speak(reply)%3B+%7D%3B+%7D+%3C%2Fscript%3E+%3C%2Fbody%3E+%3C%2Fhtml%3E&ie=UTF-8&oe=UTF-8&hl=en-us&client=safari&safe=active"; Y" // <--- REPLACE WITH YOUR KEY
       },
       body: JSON.stringify({
         model:"gpt-3.5-turbo",
@@ -123,14 +120,14 @@ Provide 2-3 suggestions or next actions in JSON format:
   }
 }
 
-// --- Keyboard ---
+// ======== KEYBOARD ========
 document.addEventListener('keydown',e=>{
   if(!currentOptions||currentOptions.length===0) return;
   let idx = parseInt(e.key,10)-1;
   if(currentOptions[idx]) makeChoice(currentOptions[idx].text,currentOptions[idx].flux||0,currentOptions[idx].trust||0,currentOptions[idx].curiosity||0);
 });
 
-// --- Player input ---
+// ======== PLAYER INPUT ========
 document.getElementById('playerInput').addEventListener('keydown',e=>{
   if(e.key==="Enter"){
     let val=e.target.value.trim();
@@ -138,7 +135,7 @@ document.getElementById('playerInput').addEventListener('keydown',e=>{
   }
 });
 
-// --- Start ---
+// ======== START ========
 aiRespond("Hello, Eachoflux. Activate Jarvis mode.");
 </script>
 </body>
