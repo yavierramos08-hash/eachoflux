@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eachoflux AI Adventure</title>
+<style>
+  body { background: #111; color: #eee; font-family: monospace; padding: 1em; }
+  button { margin: 0.5em; padding: 1em 2em; font-size: 1em; cursor: pointer; }
+  #stats { margin-top: 1em; }
+</style>
+</head>
+<body>
+
+<h1>Eachoflux AI Adventure</h1>
+<div id="game"></div>
+<div id="stats"></div>
+<div id="choices"></div>
+
+<script>
+// --- Game State ---
+let stats = { Flux: 5, Trust: 5, Curiosity: 5 };
+let memory = [];
+
+// --- Helper Functions ---
+function updateStats(flux=0, trust=0, curiosity=0){
+  stats.Flux += flux;
+  stats.Trust += trust;
+  stats.Curiosity += curiosity;
+  for(let key in stats){
+    if(stats[key]<0) stats[key]=0;
+    if(stats[key]>10) stats[key]=10;
+  }
+  document.getElementById("stats").innerHTML = 
+    `Flux: ${stats.Flux} | Trust: ${stats.Trust} | Curiosity: ${stats.Curiosity}`;
+}
+
+function recordMemory(event){ memory.push(event); }
+
+function say(text){ document.getElementById("game").innerHTML = text; }
+
+// --- Scene Functions ---
+function sceneHallway(){
+  say("Three paths lie before you… choose by the tremor in your heart.");
+  setChoices([
+    {text:"Circle (Follow intuition)", action:()=>{updateStats(1,1,0); recordMemory("Chose Circle"); sceneCircle();}},
+    {text:"Triangle (Use logic)", action:()=>{updateStats(-1,0,0); recordMemory("Chose Triangle"); sceneTriangle();}},
+    {text:"Spiral (Hesitate)", action:()=>{updateStats(-1,-1,0); recordMemory("Chose Spiral"); sceneSpiral();}}
+  ]);
+}
+
+function sceneCircle(){
+  say("You enter a golden hallway. Three runes float: Key, Flame, Wave.");
+  setChoices([
+    {text:"Key", action:()=>{updateStats(2,1,0); recordMemory("Chose Key rune"); sceneCrossroads();}},
+    {text:"Flame", action:()=>{updateStats(1,0,0); recordMemory("Chose Flame rune"); sceneCrossroads();}},
+    {text:"Wave", action:()=>{updateStats(1,-1,0); recordMemory("Chose Wave rune"); sceneCrossroads();}}
+  ]);
+}
+
+function sceneTriangle(){
+  say("Mirrored walls reflect your hesitation. Riddle: 'I speak without a voice… What am I?'");
+  setChoices([
+    {text:"Echo", action:()=>{updateStats(1,1,0); recordMemory("Solved Echo riddle"); sceneCrossroads();}},
+    {text:"Ignore", action:()=>{updateStats(-1,-1,0); sceneCrossroads();}},
+    {text:"Investigate mirrors", action:()=>{updateStats(0,2,1); recordMemory("Investigated mirrors"); sceneCrossroads();}}
+  ]);
+}
+
+function sceneSpiral(){
+  say("Shadows deepen and whisper secrets. Flux pulses unpredictably.");
+  sceneCrossroads();
+}
+
+function sceneCrossroads(){
+  say("The corridor splits again… choose your path.");
+  setChoices([
+    {text:"Left (Shadow)", action:()=>{updateStats(-1,-1,0); recordMemory("Shadow path"); sceneShadow();}},
+    {text:"Right (Light)", action:()=>{updateStats(2,1,0); recordMemory("Light path"); sceneLight();}},
+    {text:"Forward (Unknown)", action:()=>{updateStats(0,0,2); recordMemory("Unknown path"); sceneUnknown();}}
+  ]);
+}
+
+function sceneShadow(){
+  say("Riddle: 'Taken from a mine, shut in wood, used by artists. What am I?'");
+  setChoices([
+    {text:"Pencil", action:()=>{updateStats(1,2,0); sceneEnd();}},
+    {text:"Coal", action:()=>{updateStats(-1,-1,0); sceneEnd();}},
+    {text:"Brush", action:()=>{updateStats(-1,-1,0); sceneEnd();}}
+  ]);
+}
+
+function sceneLight(){
+  say("A glowing door appears.");
+  setChoices([
+    {text:"Open it", action:()=>{updateStats(2,1,0); recordMemory("Opened door"); sceneEnd();}},
+    {text:"Inspect sigil", action:()=>{updateStats(0,0,2); recordMemory("Inspected sigil"); sceneEnd();}},
+    {text:"Step back", action:()=>{updateStats(0,-1,0); sceneEnd();}}
+  ]);
+}
+
+function sceneUnknown(){
+  let memStr = memory.length>0 ? "You remember past choices: "+memory.join(", ") : "You have no memory here…";
+  say("Time feels unstable. "+memStr);
+  updateStats(1,0,0);
+  sceneEnd();
+}
+
+function sceneEnd(){
+  say("Your journey concludes…<br>Stats:<br>Flux: "+stats.Flux+" | Trust: "+stats.Trust+" | Curiosity: "+stats.Curiosity+"<br>Memory: "+memory.join(", "));
+  setChoices([{text:"Restart", action:()=>{stats={Flux:5,Trust:5,Curiosity:5}; memory=[]; sceneHallway();}}]);
+}
+
+// --- Choice Buttons ---
+function setChoices(options){
+  let div = document.getElementById("choices");
+  div.innerHTML = "";
+  options.forEach(opt=>{
+    let btn = document.createElement("button");
+    btn.innerHTML = opt.text;
+    btn.onclick = opt.action;
+    div.appendChild(btn);
+  });
+}
+
+// --- Start Game ---
+sceneHallway();
+updateStats();
+</script>
+
+</body>
+</html>
