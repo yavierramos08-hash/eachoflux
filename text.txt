@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eachoflux AI Companion</title>
+<style>
+:root{
+  --bg:#0e0f11; --panel:#131416; --muted:#9aa0a6; --accent:#7bd389;
+}
+html,body{height:100%;margin:0;}
+body{background:linear-gradient(180deg,#0a0b0c 0%,#0e0f11 100%);color:#e8eef2;font-family:monospace;padding:2rem;}
+.container{max-width:800px;margin:auto;background:var(--panel);border-radius:10px;padding:1rem;}
+#game{min-height:150px;padding:1rem;line-height:1.5;}
+#choices button{margin:0.25rem;padding:0.5rem 1rem;border-radius:6px;cursor:pointer;}
+#stats{margin-top:0.5rem;color:var(--muted);}
+#playerInput{margin-top:0.5rem;width:100%;padding:0.5rem;border-radius:6px;border:none;font-family:monospace;}
+#memoryLog{margin-top:0.5rem;color:var(--muted); font-size:0.9rem; max-height:100px; overflow-y:auto;}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Eachoflux AI Companion</h1>
+<div id="stats"></div>
+<div id="game"></div>
+<div id="choices"></div>
+<input type="text" id="playerInput" placeholder="Type something for Eachoflux and press Enter"/>
+<label><input type="checkbox" id="voiceToggle" checked /> Enable Voice</label>
+<div id="memoryLog"></div>
+</div>
+
+<script>
+// --- Persistent Storage Key ---
+const STORAGE_KEY = 'eachoflux_webapp_v1';
+
+// --- Game State ---
+let stats = {Flux:5, Trust:5, Curiosity:5};
+let personality = {friendly:5, cautious:5, mysterious:5};
+let memory = [];
+
+// --- Load & Save ---
+function loadState(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try{
+      const parsed = JSON.parse(saved);
+      stats = parsed.stats || stats;
+      personality = parsed.personality || personality;
+      memory = parsed.memory || memory;
+      return true;
+    }catch(e){ console.error("Load failed", e); }
+  }
+  return false;
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({stats, personality, memory}));
+  updateMemoryLog();
+}
+
+// --- Voice ---
+function speak(text, emotion="neutral"){
+  if(!document.getElementById('voiceToggle').checked) return;
+  if('speechSynthesis' in window){
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang='en-US';
+    if(emotion==="ominous"){utter.pitch=0.6; utter.rate=0.9;}
+    else if(emotion==="excited"){utter.pitch=1.4; utter.rate=1.2;}
+    else{utter.pitch=1; utter.rate=1;}
+    window.speechSynthesis.speak(utter);
+  }
+}
+
+// --- Display ---
+function say(html){
+  document.getElementById("game").innerHTML = html;
+  const text = html.replace(/<[^>]*>/g,'');
+  speak(text, getEmotionFromPersonality());
+}
+
+// --- Stats & Personality ---
+function clamp(n,min=0,max=10){ return Math.max(min, Math.min(max,n)); }
+function updateStats(flux=0, trust=0, curiosity=0){
+  stats.Flux = clamp(stats.Flux+flux);
+  stats.Trust = clamp(stats.Trust+trust);
+  stats.Curiosity = clamp(stats.Curiosity+curiosity);
+  document.getElementById("stats").textContent = 
+    `Flux:${stats.Flux} | Trust:${stats.Trust} | Curiosity:${stats.Curiosity}`;
+}
+function updatePersonality(flux=0, trust=0, curiosity=0){
+  personality.friendly += trust;
+  personality.cautious += (5 - trust);
+  personality.mysterious += flux;
+  for(let key in personality){ personality[key] = clamp(personality[key],0,10);}
+}
+function getEmotionFromPersonality(){
+  if(personality.cautious>7) return "ominous";
+  if(personality.friendly>7) return "excited";
+  if(personality.mysterious>7) return "neutral";
+  return "neutral";
+}
+
+// --- Memory ---
+function recordMemory(event){ 
+  if(event){ memory.push(event); if(memory.length>50) memory.shift(); updateMemoryLog(); } 
+}
+function updateMemoryLog(){
+  document.getElementById('memoryLog').innerHTML = "Memory: "+memory.join(", ");
+}
+
+// --- Choices ---
+let currentOptions = [];
+function setChoices(options){
+  currentOptions = options;
+  const div = document.getElementById("choices");
+  div.innerHTML = "";
+  options.forEach((opt,i)=>{
+    const btn = document.createElement("button");
+    btn.innerHTML = `${i+1}. ${opt.text}`;
+    btn.onclick = ()=>makeChoice(opt.text,opt.flux||0,opt.trust||0,opt.curiosity||0);
+    div.appendChild(btn);
+  });
+}
+
+// --- Make Choice ---
+function makeChoice(text, flux=0, trust=0, curiosity=0){
+  updateStats(flux, trust, curiosity);
+  updatePersonality(flux, trust, curiosity);
+  recordMemory(text);
+  saveState();
+  aiRespond(text);
+}
+
+// --- AI Response (simple local version for instant use) ---
+function aiRespond(playerAction){
+  // Memory-aware response
+  let mem = memory.length>0 ? "I remember you did: "+memory.join(", ") : "We are just starting...";
+  let response = `Eachoflux responds: "${playerAction}"... ${mem}`;
+  say(response);
+
+  // Provide simple choices
+  setChoices([
+    {text:"Explore further", flux:1, trust:0, curiosity:1},
+    {text:"Ask Eachoflux a question", flux:0, trust:1, curiosity:0},
+    {text:"Rest and reflect", flux:0, trust:0, curiosity:1}
+  ]);
+}
+
+// --- Keyboard navigation ---
+document.addEventListener('keydown', e=>{
+  if(!currentOptions||currentOptions.length===0) return;
+  const idx = parseInt(e.key,10)-1;
+  if(currentOptions[idx]) makeChoice(currentOptions[idx].text,currentOptions[idx].flux||0,currentOptions[idx].trust||0,currentOptions[idx].curiosity||0);
+});
+
+// --- Player input ---
+document.getElementById('playerInput').addEventListener('keydown', e=>{
+  if(e.key==="Enter"){
+    const val = e.target.value.trim();
+    if(val){ aiRespond(val); e.target.value=""; }
+  }
+});
+
+// --- Start ---
+if(!loadState()) saveState();
+updateStats();
+updateMemoryLog();
+aiRespond("Start Adventure");
+
+</script>
+</body>
+</html>
